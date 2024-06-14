@@ -6,18 +6,39 @@ sap.ui.define([
 
 	return Controller.extend("sap.m.sample.TableDnD.AvailableProducts", {
 
-		onDropAvailableProductsTable: function(oEvent) {
-			var oDraggedItem = oEvent.getParameter("draggedControl");
-			var oDraggedItemContext = oDraggedItem.getBindingContext();
-			if (!oDraggedItemContext) {
-				return;
-			}
+		
 
-			// reset the rank property and update the model to refresh the bindings
-			var oAvailableProductsTable = Utils.getAvailableProductsTable(this);
-			var oProductsModel = oAvailableProductsTable.getModel();
-			oProductsModel.setProperty("Rank", Utils.ranking.Initial, oDraggedItemContext);
-		},
+		onDropAvailableProductsTable: function(oEvent) {
+            var oDraggedItem = oEvent.getParameter("draggedControl");
+            var oDraggedItemContext = oDraggedItem.getBindingContext();
+            if (!oDraggedItemContext) {
+                return;
+            }
+        
+            // Reset the rank property and update the model to refresh the bindings
+            var oAvailableProductsTable = Utils.getAvailableProductsTable(this);
+            var oProductsModel = oAvailableProductsTable.getModel();
+            oProductsModel.setProperty("Rank", Utils.ranking.Initial, oDraggedItemContext);
+        
+            // Update selectedProductsModel to remove the dragged item
+            var oSelectedProductsModel = this.getView().getModel("selectedProductsModel");
+            if (oSelectedProductsModel) {
+                var aSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
+                // Filter out the dragged item based on ProductID STARTING FROM LINE 28, IT IS FAILING , FIX IT
+                aSelectedProducts = aSelectedProducts.filter(function(oProduct) {
+                    return oProduct.ProductID !== oDraggedItemContext.getProperty("ProductID");
+                });
+                oSelectedProductsModel.setProperty("/selectedProducts", aSelectedProducts);
+        
+                // Log the updated selectedProductsModel to console
+                console.log("Updated selectedProductsModel after removing:", aSelectedProducts);
+            } else {
+                console.error("selectedProductsModel not found in AvailableProducts controller.");
+            }
+        },
+		
+		
+		
 
 		moveToSelectedProductsTable: function() {
 			var oAvailableProductsTable = Utils.getAvailableProductsTable(this);

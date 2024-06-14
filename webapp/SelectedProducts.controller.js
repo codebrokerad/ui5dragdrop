@@ -11,9 +11,13 @@ sap.ui.define([
     return Controller.extend("sap.m.sample.TableDnD.SelectedProducts", {
 
         onInit: function () {
-            // Create a JSON model for selected products
-            var oSelectedProductsModel = new JSONModel({ selectedProducts: [] });
-            this.getView().setModel(oSelectedProductsModel, "selectedProductsModel");
+            // No need to create the model again here if initialized in Component.js
+            // Just retrieve it
+            var oSelectedProductsModel = this.getView().getModel("selectedProductsModel");
+            if (!oSelectedProductsModel) {
+                // Handle error if model not found
+                console.error("selectedProductsModel not found in SelectedProducts controller.");
+            }
         },
 
         moveToAvailableProductsTable: function () {
@@ -46,19 +50,19 @@ sap.ui.define([
             if (!oDraggedItemContext) {
                 return;
             }
-
+        
             var oRanking = Utils.ranking;
             var iNewRank = oRanking.Default;
             var oDroppedItem = oEvent.getParameter("droppedControl");
-
-            if (oDroppedItem instanceof ColumnListItem) {
+        
+            if (oDroppedItem instanceof sap.m.ColumnListItem) {
                 // Get the dropped row data
                 var sDropPosition = oEvent.getParameter("dropPosition");
                 var oDroppedItemContext = oDroppedItem.getBindingContext();
                 var iDroppedItemRank = oDroppedItemContext.getProperty("Rank");
                 var oDroppedTable = oDroppedItem.getParent();
                 var iDroppedItemIndex = oDroppedTable.indexOfItem(oDroppedItem);
-
+        
                 // Find the new index of the dragged row depending on the drop position
                 var iNewItemIndex = iDroppedItemIndex + (sDropPosition === "After" ? 1 : -1);
                 var oNewItem = oDroppedTable.getItems()[iNewItemIndex];
@@ -71,18 +75,25 @@ sap.ui.define([
                     iNewRank = oRanking.Between(iDroppedItemRank, oNewItemContext.getProperty("Rank"));
                 }
             }
-
+        
             // Set the rank property and update the model to refresh the bindings
             var oSelectedProductsTable = Utils.getSelectedProductsTable(this);
             var oProductsModel = oSelectedProductsTable.getModel();
             oProductsModel.setProperty("Rank", iNewRank, oDraggedItemContext);
-
+        
             // Add the product to the selected products model
             var oSelectedProductsModel = this.getView().getModel("selectedProductsModel");
             var aSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
             aSelectedProducts.push(oDraggedItemContext.getObject());
             oSelectedProductsModel.setProperty("/selectedProducts", aSelectedProducts);
+            // setmodel trigger
+            this.getView().setModel(oSelectedProductsModel, "selectedProductsModel");
+            // Log the contents of selectedProductsModel to console
+            var aCurrentSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
+            console.log("Selected Products after dropping:", aCurrentSelectedProducts);
         },
+        
+        
 
         // Save the selected products and log them to the console
         saveSelectedProducts: function () {
