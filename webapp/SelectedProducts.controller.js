@@ -1,102 +1,133 @@
+// selectedproducts.controller.js
+
 sap.ui.define([
-	"sap/ui/core/mvc/Controller",
-	"sap/m/ColumnListItem",
-	"./Utils"
-], function(Controller, ColumnListItem, Utils) {
-	"use strict";
+    "sap/ui/core/mvc/Controller",
+    "sap/ui/model/json/JSONModel",
+    "sap/m/ColumnListItem",
+    "./Utils"
+], function (Controller, JSONModel, ColumnListItem, Utils) {
+    "use strict";
 
-	return Controller.extend("sap.m.sample.TableDnD.SelectedProducts", {
+    return Controller.extend("sap.m.sample.TableDnD.SelectedProducts", {
 
-		moveToAvailableProductsTable: function() {
-			var oSelectedProductsTable = Utils.getSelectedProductsTable(this);
-			Utils.getSelectedItemContext(oSelectedProductsTable, function(oSelectedItemContext, iSelectedItemIndex) {
-				// reset the rank property and update the model to refresh the bindings
-				var oProductsModel = oSelectedProductsTable.getModel();
-				oProductsModel.setProperty("Rank", Utils.ranking.Initial, oSelectedItemContext);
+        onInit: function () {
+            // Create a JSON model for selected products
+            var oSelectedProductsModel = new JSONModel({ selectedProducts: [] });
+            this.getView().setModel(oSelectedProductsModel, "selectedProductsModel");
+        },
 
-				// select the previously selected position
-				var aItemsOfSelectedProductsTable = oSelectedProductsTable.getItems();
-				var oPrevItem = aItemsOfSelectedProductsTable[Math.min(iSelectedItemIndex, aItemsOfSelectedProductsTable.length - 1)];
-				if (oPrevItem) {
-					oPrevItem.setSelected(true);
-				}
-			});
-		},
+        moveToAvailableProductsTable: function () {
+            var oSelectedProductsTable = Utils.getSelectedProductsTable(this);
+            Utils.getSelectedItemContext(oSelectedProductsTable, function (oSelectedItemContext, iSelectedItemIndex) {
+                // Reset the rank property and update the model to refresh the bindings
+                var oProductsModel = oSelectedProductsTable.getModel();
+                oProductsModel.setProperty("Rank", Utils.ranking.Initial, oSelectedItemContext);
 
-		onDropSelectedProductsTable: function(oEvent) {
-			var oDraggedItem = oEvent.getParameter("draggedControl");
-			var oDraggedItemContext = oDraggedItem.getBindingContext();
-			if (!oDraggedItemContext) {
-				return;
-			}
+                // Remove the product from the selected products model
+                var oSelectedProductsModel = this.getView().getModel("selectedProductsModel");
+                var aSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
+                aSelectedProducts = aSelectedProducts.filter(function (oProduct) {
+                    return oProduct !== oSelectedItemContext.getObject();
+                });
+                oSelectedProductsModel.setProperty("/selectedProducts", aSelectedProducts);
 
-			var oRanking = Utils.ranking;
-			var iNewRank = oRanking.Default;
-			var oDroppedItem = oEvent.getParameter("droppedControl");
+                // Select the previously selected position
+                var aItemsOfSelectedProductsTable = oSelectedProductsTable.getItems();
+                var oPrevItem = aItemsOfSelectedProductsTable[Math.min(iSelectedItemIndex, aItemsOfSelectedProductsTable.length - 1)];
+                if (oPrevItem) {
+                    oPrevItem.setSelected(true);
+                }
+            }.bind(this));
+        },
 
-			if (oDroppedItem instanceof ColumnListItem) {
-				// get the dropped row data
-				var sDropPosition = oEvent.getParameter("dropPosition");
-				var oDroppedItemContext = oDroppedItem.getBindingContext();
-				var iDroppedItemRank = oDroppedItemContext.getProperty("Rank");
-				var oDroppedTable = oDroppedItem.getParent();
-				var iDroppedItemIndex = oDroppedTable.indexOfItem(oDroppedItem);
+        onDropSelectedProductsTable: function (oEvent) {
+            var oDraggedItem = oEvent.getParameter("draggedControl");
+            var oDraggedItemContext = oDraggedItem.getBindingContext();
+            if (!oDraggedItemContext) {
+                return;
+            }
 
-				// find the new index of the dragged row depending on the drop position
-				var iNewItemIndex = iDroppedItemIndex + (sDropPosition === "After" ? 1 : -1);
-				var oNewItem = oDroppedTable.getItems()[iNewItemIndex];
-				if (!oNewItem) {
-					// dropped before the first row or after the last row
-					iNewRank = oRanking[sDropPosition](iDroppedItemRank);
-				} else {
-					// dropped between first and the last row
-					var oNewItemContext = oNewItem.getBindingContext();
-					iNewRank = oRanking.Between(iDroppedItemRank, oNewItemContext.getProperty("Rank"));
-				}
-			}
+            var oRanking = Utils.ranking;
+            var iNewRank = oRanking.Default;
+            var oDroppedItem = oEvent.getParameter("droppedControl");
 
-			// set the rank property and update the model to refresh the bindings
-			var oSelectedProductsTable = Utils.getSelectedProductsTable(this);
-			var oProductsModel = oSelectedProductsTable.getModel();
-			oProductsModel.setProperty("Rank", iNewRank, oDraggedItemContext);
-		},
+            if (oDroppedItem instanceof ColumnListItem) {
+                // Get the dropped row data
+                var sDropPosition = oEvent.getParameter("dropPosition");
+                var oDroppedItemContext = oDroppedItem.getBindingContext();
+                var iDroppedItemRank = oDroppedItemContext.getProperty("Rank");
+                var oDroppedTable = oDroppedItem.getParent();
+                var iDroppedItemIndex = oDroppedTable.indexOfItem(oDroppedItem);
 
-		moveSelectedItem: function(sDirection) {
-			var oSelectedProductsTable = Utils.getSelectedProductsTable(this);
-			Utils.getSelectedItemContext(oSelectedProductsTable, function(oSelectedItemContext, iSelectedItemIndex) {
-				var iSiblingItemIndex = iSelectedItemIndex + (sDirection === "Up" ? -1 : 1);
-				var oSiblingItem = oSelectedProductsTable.getItems()[iSiblingItemIndex];
-				var oSiblingItemContext = oSiblingItem.getBindingContext();
-				if (!oSiblingItemContext) {
-					return;
-				}
+                // Find the new index of the dragged row depending on the drop position
+                var iNewItemIndex = iDroppedItemIndex + (sDropPosition === "After" ? 1 : -1);
+                var oNewItem = oDroppedTable.getItems()[iNewItemIndex];
+                if (!oNewItem) {
+                    // Dropped before the first row or after the last row
+                    iNewRank = oRanking[sDropPosition](iDroppedItemRank);
+                } else {
+                    // Dropped between first and the last row
+                    var oNewItemContext = oNewItem.getBindingContext();
+                    iNewRank = oRanking.Between(iDroppedItemRank, oNewItemContext.getProperty("Rank"));
+                }
+            }
 
-				// swap the selected and the siblings rank
-				var oProductsModel = oSelectedProductsTable.getModel();
-				var iSiblingItemRank = oSiblingItemContext.getProperty("Rank");
-				var iSelectedItemRank = oSelectedItemContext.getProperty("Rank");
+            // Set the rank property and update the model to refresh the bindings
+            var oSelectedProductsTable = Utils.getSelectedProductsTable(this);
+            var oProductsModel = oSelectedProductsTable.getModel();
+            oProductsModel.setProperty("Rank", iNewRank, oDraggedItemContext);
 
-				oProductsModel.setProperty("Rank", iSiblingItemRank, oSelectedItemContext);
-				oProductsModel.setProperty("Rank", iSelectedItemRank, oSiblingItemContext);
+            // Add the product to the selected products model
+            var oSelectedProductsModel = this.getView().getModel("selectedProductsModel");
+            var aSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
+            aSelectedProducts.push(oDraggedItemContext.getObject());
+            oSelectedProductsModel.setProperty("/selectedProducts", aSelectedProducts);
+        },
 
-				// after move select the sibling
-				oSelectedProductsTable.getItems()[iSiblingItemIndex].setSelected(true).focus();
-			});
-		},
+        // Save the selected products and log them to the console
+        saveSelectedProducts: function () {
+            var oSelectedProductsModel = this.getView().getModel("selectedProductsModel");
+            var aSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
+            console.log("Selected Products:", aSelectedProducts);
+            // Additional logic to save data can be added here
+        },
 
-		moveUp: function(oEvent) {
-			this.moveSelectedItem("Up");
-			oEvent.getSource().focus();
-		},
+        moveSelectedItem: function (sDirection) {
+            var oSelectedProductsTable = Utils.getSelectedProductsTable(this);
+            Utils.getSelectedItemContext(oSelectedProductsTable, function (oSelectedItemContext, iSelectedItemIndex) {
+                var iSiblingItemIndex = iSelectedItemIndex + (sDirection === "Up" ? -1 : 1);
+                var oSiblingItem = oSelectedProductsTable.getItems()[iSiblingItemIndex];
+                var oSiblingItemContext = oSiblingItem.getBindingContext();
+                if (!oSiblingItemContext) {
+                    return;
+                }
 
-		moveDown: function(oEvent) {
-			this.moveSelectedItem("Down");
-			oEvent.getSource().focus();
-		},
+                // Swap the selected and the sibling's rank
+                var oProductsModel = oSelectedProductsTable.getModel();
+                var iSiblingItemRank = oSiblingItemContext.getProperty("Rank");
+                var iSelectedItemRank = oSelectedItemContext.getProperty("Rank");
 
-		onBeforeOpenContextMenu: function(oEvent) {
-			oEvent.getParameters().listItem.setSelected(true);
-		}
-	});
+                oProductsModel.setProperty("Rank", iSiblingItemRank, oSelectedItemContext);
+                oProductsModel.setProperty("Rank", iSelectedItemRank, oSiblingItemContext);
+
+                // After move, select the sibling
+                oSelectedProductsTable.getItems()[iSiblingItemIndex].setSelected(true).focus();
+            });
+        },
+
+        moveUp: function (oEvent) {
+            this.moveSelectedItem("Up");
+            oEvent.getSource().focus();
+        },
+
+        moveDown: function (oEvent) {
+            this.moveSelectedItem("Down");
+            oEvent.getSource().focus();
+        },
+
+        onBeforeOpenContextMenu: function (oEvent) {
+            oEvent.getParameters().listItem.setSelected(true);
+        }
+    });
 
 });
