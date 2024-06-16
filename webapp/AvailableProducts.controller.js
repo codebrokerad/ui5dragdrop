@@ -23,15 +23,29 @@ sap.ui.define([
             // Update selectedProductsModel to remove the dragged item
             var oSelectedProductsModel = this.getView().getModel("selectedProductsModel");
             if (oSelectedProductsModel) {
-                var aSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
-                // Filter out the dragged item based on ProductID STARTING FROM LINE 28, IT IS FAILING , FIX IT
-                aSelectedProducts = aSelectedProducts.filter(function(oProduct) {
-                    return oProduct.ProductID !== oDraggedItemContext.getProperty("ProductID");
-                });
-                oSelectedProductsModel.setProperty("/selectedProducts", aSelectedProducts);
-        
-                // Log the updated selectedProductsModel to console
-                console.log("Updated selectedProductsModel after removing:", aSelectedProducts);
+                var aOriginalSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
+                var sDraggedProduct = oDraggedItemContext.getObject();  // This should be the object itself
+
+        // Log the state before filtering
+        console.log("Selected products before removal:", aOriginalSelectedProducts);
+        console.log("Product to remove:", sDraggedProduct);
+
+        // Filter out the product with the matching ProductId
+        var aFilteredSelectedProducts = aOriginalSelectedProducts.filter(function(oProduct) {
+            console.log("Comparing:", oProduct.ProductId, "with", sDraggedProduct.ProductId);
+
+            // Use a strict equality check
+            return oProduct.ProductId !== sDraggedProduct.ProductId;
+        });
+
+            // Log the state after filtering
+        console.log("Selected products after removal:", aFilteredSelectedProducts);
+
+        // Update the model with the new list of selected products
+        oSelectedProductsModel.setProperty("/selectedProducts", aFilteredSelectedProducts);
+
+        // Force the model to refresh and reflect the changes
+        oSelectedProductsModel.refresh(true);
             } else {
                 console.error("selectedProductsModel not found in AvailableProducts controller.");
             }
