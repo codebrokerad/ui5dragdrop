@@ -1,48 +1,62 @@
 sap.ui.define([
-	"sap/ui/core/mvc/Controller",
-	"sap/ui/model/json/JSONModel",
-	"./Utils",
-	"sap/ui/thirdparty/jquery"
+    "sap/ui/core/mvc/Controller",
+    "sap/ui/model/json/JSONModel",
+    "./Utils",
+    "sap/ui/thirdparty/jquery"
 ], function(Controller, JSONModel, Utils, jQuery) {
-	"use strict";
+    "use strict";
 
-	return Controller.extend("sap.m.sample.TableDnD.Controller", {
+    return Controller.extend("sap.m.sample.TableDnD.Controller", {
 
-		onInit: function () {
-			// set explored app's demo model on this sample
-			this.oProductsModel = this.initSampleProductsModel();
-			this.getView().setModel(this.oProductsModel);
-		},
+        onInit: function() {
+            // Initialize sample products model
+            this.oProductsModel = this.initSampleProductsModel();
+            this.getView().setModel(this.oProductsModel);
 
-		onExit: function() {
-			this.oProductsModel.destroy();
-		},
+            // Initialize selected products model conditionally
+            if (!this.getOwnerComponent().getModel("selectedProductsModel")) {
+                this.initSelectedProductsModel();
+            }
+        },
 
-		initSampleProductsModel: function() {
-			var oModel = new JSONModel();
+        onExit: function() {
+            this.oProductsModel.destroy();
+            // Optionally, destroy the selected products model
+            const oSelectedProductsModel = this.getOwnerComponent().getModel("selectedProductsModel");
+            if (oSelectedProductsModel) {
+                oSelectedProductsModel.destroy();
+            }
+        },
 
-			jQuery.ajax({
-				url: sap.ui.require.toUrl("sap/ui/demo/mock/products.json"),
-				dataType: "json"
-			}).then(function(oData) {
-				// prepare and initialize the rank property
-				oData.ProductCollection.forEach(function(oProduct) {
-					oProduct.Rank = Utils.ranking.Initial;
-				}, this);
+        initSampleProductsModel: function() {
+            var oModel = new JSONModel();
 
-				oModel.setData(oData);
-			});
+            jQuery.ajax({
+                url: sap.ui.require.toUrl("sap/ui/demo/mock/products.json"),
+                dataType: "json"
+            }).then(function(oData) {
+                // prepare and initialize the rank property
+                oData.ProductCollection.forEach(function(oProduct) {
+                    oProduct.Rank = Utils.ranking.Initial;
+                });
 
-			return oModel;
-		},
+                oModel.setData(oData);
+            });
 
-		moveToAvailableProductsTable: function() {
-			this.byId("selectedProducts").getController().moveToAvailableProductsTable();
-		},
+            return oModel;
+        },
 
-		moveToSelectedProductsTable: function() {
-			this.byId("availableProducts").getController().moveToSelectedProductsTable();
-		}
-	});
+        initSelectedProductsModel: function() {
+            var oSelectedProductsModel = new JSONModel({ selectedProducts: [] });
+            this.getOwnerComponent().setModel(oSelectedProductsModel, "selectedProductsModel");
+        },
 
+        moveToAvailableProductsTable: function() {
+            this.byId("selectedProducts").getController().moveToAvailableProductsTable();
+        },
+
+        moveToSelectedProductsTable: function() {
+            this.byId("availableProducts").getController().moveToSelectedProductsTable();
+        }
+    });
 });

@@ -1,7 +1,6 @@
 sap.ui.define([
-    'sap/ui/core/UIComponent',
-    'sap/ui/model/json/JSONModel'
-], function(UIComponent, JSONModel) {
+    'sap/ui/core/UIComponent'
+], function(UIComponent) {
     "use strict";
 
     return UIComponent.extend("sap.m.sample.TableDnD.Component", {
@@ -13,10 +12,9 @@ sap.ui.define([
             // call the init function of the parent
             UIComponent.prototype.init.apply(this, arguments);
 
-            // Create a JSON model for selected products
-            var oSelectedProductsModel = new JSONModel({ selectedProducts: [] });
-            this.setModel(oSelectedProductsModel, "selectedProductsModel");
+            // Model initialization moved to the specific controller
         }
     });
 });
+
 
