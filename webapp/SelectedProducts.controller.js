@@ -41,6 +41,36 @@ sap.ui.define([
                 if (oPrevItem) {
                     oPrevItem.setSelected(true);
                 }
+                // Update selectedProductsModel to remove the dragged item
+                var oSelectedProductsModel = this.getView().getModel("selectedProductsModel");
+                if (oSelectedProductsModel) {
+                    var aOriginalSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
+                    var sDraggedProduct = oSelectedItemContext.getObject();  // This should be the object itself
+
+                    // Log the state before filtering
+                    console.log("Selected products before removal:", aOriginalSelectedProducts);
+                    console.log("Product to remove:", sDraggedProduct);
+
+                    // Filter out the product with the matching ProductId
+                    var aFilteredSelectedProducts = aOriginalSelectedProducts.filter(function (oProduct) {
+                        console.log("Comparing:", oProduct.ProductId, "with", sDraggedProduct.ProductId);
+
+                        // Use a strict equality check
+                        return oProduct.ProductId !== sDraggedProduct.ProductId;
+                    });
+
+                    // Log the state after filtering
+                    console.log("Selected products after removal:", aFilteredSelectedProducts);
+
+                    // Update the model with the new list of selected products
+                    oSelectedProductsModel.setProperty("/selectedProducts", aFilteredSelectedProducts);
+
+                    // Force the model to refresh and reflect the changes
+                    oSelectedProductsModel.refresh(true);
+                } else {
+                    console.error("selectedProductsModel not found in AvailableProducts controller.");
+                }
+
             }.bind(this));
         },
 
@@ -50,11 +80,11 @@ sap.ui.define([
             if (!oDraggedItemContext) {
                 return;
             }
-        
+
             var oRanking = Utils.ranking;
             var iNewRank = oRanking.Default;
             var oDroppedItem = oEvent.getParameter("droppedControl");
-        
+
             if (oDroppedItem instanceof sap.m.ColumnListItem) {
                 // Get the dropped row data
                 var sDropPosition = oEvent.getParameter("dropPosition");
@@ -62,7 +92,7 @@ sap.ui.define([
                 var iDroppedItemRank = oDroppedItemContext.getProperty("Rank");
                 var oDroppedTable = oDroppedItem.getParent();
                 var iDroppedItemIndex = oDroppedTable.indexOfItem(oDroppedItem);
-        
+
                 // Find the new index of the dragged row depending on the drop position
                 var iNewItemIndex = iDroppedItemIndex + (sDropPosition === "After" ? 1 : -1);
                 var oNewItem = oDroppedTable.getItems()[iNewItemIndex];
@@ -75,12 +105,12 @@ sap.ui.define([
                     iNewRank = oRanking.Between(iDroppedItemRank, oNewItemContext.getProperty("Rank"));
                 }
             }
-        
+
             // Set the rank property and update the model to refresh the bindings
             var oSelectedProductsTable = Utils.getSelectedProductsTable(this);
             var oProductsModel = oSelectedProductsTable.getModel();
             oProductsModel.setProperty("Rank", iNewRank, oDraggedItemContext);
-        
+
             // Add the product to the selected products model
             var oSelectedProductsModel = this.getView().getModel("selectedProductsModel");
             var aSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
@@ -92,8 +122,8 @@ sap.ui.define([
             var aCurrentSelectedProducts = oSelectedProductsModel.getProperty("/selectedProducts");
             console.log("Selected Products after dropping:", aCurrentSelectedProducts);
         },
-        
-        
+
+
 
         // Save the selected products and log them to the console
         saveSelectedProducts: function () {
